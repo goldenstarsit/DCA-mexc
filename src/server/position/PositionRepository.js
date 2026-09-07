@@ -19,6 +19,17 @@ export class PositionRepository extends BaseRepository {
     `).get(id) ?? null;
   }
 
+  getAllOpen() {
+    return this.db
+      .prepare(`
+        SELECT *
+        FROM positions
+        WHERE status = 'OPEN'
+        ORDER BY id ASC
+      `)
+      .all();
+  }
+
   getOpenBySymbol(symbol) {
     return this.prepare(`
       SELECT
