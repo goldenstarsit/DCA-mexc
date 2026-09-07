@@ -9,6 +9,33 @@ export class OrderRequestRepository extends BaseRepository {
     `).get(requestKey) ?? null;
   }
 
+  getById(id) {
+    return this.prepare(`
+      SELECT *
+      FROM order_requests
+      WHERE id = ?
+    `).get(id) ?? null;
+  }
+
+  getAll() {
+    return this.prepare(`
+      SELECT
+        id,
+        request_key,
+        symbol,
+        side,
+        type,
+        quantity,
+        price,
+        status,
+        exchange_order_id,
+        created_at,
+        updated_at
+      FROM order_requests
+      ORDER BY id DESC
+    `).all();
+  }
+
   create({
     requestKey,
     symbol,
@@ -44,14 +71,6 @@ export class OrderRequestRepository extends BaseRepository {
     );
 
     return this.getById(result.lastInsertRowid);
-  }
-
-  getById(id) {
-    return this.prepare(`
-      SELECT *
-      FROM order_requests
-      WHERE id = ?
-    `).get(id) ?? null;
   }
 
   markCompleted(id, exchangeOrderId = null) {
