@@ -1,22 +1,33 @@
-import { db } from '@/server/database';
+import { NextResponse } from 'next/server';
+
+import { getDatabase } from '@/server/database';
 import { DcaLevelRepository } from '@/server/dca/DcaLevelRepository.js';
 import { DcaLevelService } from '@/server/dca/DcaLevelService.js';
 
-const service = new DcaLevelService(
-  new DcaLevelRepository(db)
-);
+export const runtime = 'nodejs';
+
+function getService() {
+  const db = getDatabase();
+  const repository = new DcaLevelRepository(db);
+
+  return new DcaLevelService(repository);
+}
 
 export async function GET() {
   try {
-    return Response.json({
-      success: true,
+    const service = getService();
+
+    return NextResponse.json({
+      ok: true,
       levels: service.getAll(),
     });
   } catch (error) {
-    return Response.json(
+    console.error('DCA_LEVELS_GET_ERROR', error);
+
+    return NextResponse.json(
       {
-        success: false,
-        error: error.message,
+        ok: false,
+        error: error?.message ?? String(error),
       },
       { status: 500 }
     );
@@ -27,107 +38,31 @@ export async function POST(request) {
   try {
     const body = await request.json();
 
-    const level = service.create(body);
+    const service = getService();
 
-    return Response.json(
+    const level = service.create({
+      level: body.level,
+      triggerPercent:
+        body.triggerPercent,
+      quantity: body.quantity,
+      enabled:
+        body.enabled ?? true,
+    });
+
+    return NextResponse.json(
       {
-        success: true,
+        ok: true,
         level,
       },
       { status: 201 }
     );
   } catch (error) {
-    return Response.json(
+    console.error('DCA_LEVELS_POST_ERROR', error);
+
+    return NextResponse.json(
       {
-        success: false,
-        error: error.message,
-      },
-      { status: 400 }
-    );
-  }
-}
-
-export async function PATCH(request) {
-  try {
-    const body = await request.json();
-
-    if (!Number.isInteger(body.level) || body.level <= 0) {
-      return Response.json(
-        {
-          success: false,
-          error: 'level must be a positive integer',
-        },
-        { status: 400 }
-      );
-    }
-
-    const { level, ...patch } = body;
-
-    const updated = service.update(level, patch);
-
-    return Response.json({
-      success: true,
-      level: updated,
-    });
-  } catch (error) {
-    return Response.json(
-      {
-        success: false,
-        error: error.message,
-      },
-      { status: 400 }
-    );
-  }
-}
-
-export async function DELETE(request) {
-  try {
-    const body = await request.json();
-
-    if (!Number.isInteger(body.level) || body.level <= 0) {
-      return Response.json(
-        {
-          success: false,
-          error: 'level must be a positive integer',
-        },
-        { status: 400 }
-      );
-    }
-
-    service.delete(body.level);
-
-    return Response.json({
-      success: true,
-      deletedLevel: body.level,
-    });
-  } catch (error) {
-    return Response.json(
-      {
-        success: false,
-        error: error.message,
-      },
-      { status: 400 }
-    );
-  }
-}
-
-export async function PUT(request) {
-  try {
-    const body = await request.json();
-
-    const levels = body?.levels;
-
-    const reordered = service.reorder(levels);
-
-    return Response.json({
-      success: true,
-      levels: reordered,
-    });
-  } catch (error) {
-    return Response.json(
-      {
-        success: false,
-        error: error.message,
+        ok: false,
+        error: error?.message ?? String(error),
       },
       { status: 400 }
     );
