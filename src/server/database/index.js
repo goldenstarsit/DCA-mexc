@@ -1,9 +1,18 @@
 import { Database } from './core/Database.js';
 import { SQLiteAdapter } from './adapters/sqlite/SQLiteAdapter.js';
 
-const databaseFile =
-  process.env.DATABASE_FILE || './data/dca-mexc.db';
+let databaseInstance = null;
 
-export const db = new Database(
-  new SQLiteAdapter(databaseFile)
-);
+export function getDatabase() {
+  if (!databaseInstance) {
+    const databaseFile =
+      process.env.DATABASE_FILE ||
+      './data/dca-mexc.db';
+
+    databaseInstance = new Database(
+      new SQLiteAdapter(databaseFile)
+    );
+  }
+
+  return databaseInstance;
+}
