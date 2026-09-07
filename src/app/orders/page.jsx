@@ -2,6 +2,23 @@
 
 import { useEffect, useState } from 'react';
 
+function StatusBadge({ status }) {
+  const type =
+    status === 'COMPLETED'
+      ? 'status-success'
+      : status === 'FAILED'
+        ? 'status-danger'
+        : status === 'PROCESSING'
+          ? 'status-warning'
+          : 'status-neutral';
+
+  return (
+    <span className={`status-badge ${type}`}>
+      {status}
+    </span>
+  );
+}
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,130 +60,109 @@ export default function OrdersPage() {
   }, []);
 
   return (
-    <main
-      style={{
-        maxWidth: 1200,
-        margin: '0 auto',
-        padding: 20,
-      }}
-    >
-      <h1>Orders</h1>
+    <div className="page-container">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">
+            Orders
+          </h1>
 
-      <p style={{ marginTop: 8 }}>
-        Trading order requests and their exchange status.
-      </p>
+          <p className="page-description">
+            Trading requests and exchange execution status.
+          </p>
+        </div>
+
+        <span className="status-badge status-neutral">
+          {orders.length} orders
+        </span>
+      </div>
 
       {error && (
         <div
-          style={{
-            marginTop: 16,
-            padding: 12,
-            border: '1px solid #c00',
-            borderRadius: 8,
-          }}
+          className="message message-error"
+          style={{ marginBottom: 16 }}
         >
-          {error}
+          API Error: {error}
         </div>
       )}
 
-      {loading ? (
-        <p style={{ marginTop: 24 }}>
-          Loading...
-        </p>
-      ) : orders.length === 0 ? (
-        <p style={{ marginTop: 24 }}>
-          No orders found.
-        </p>
-      ) : (
-        <div
-          style={{
-            overflowX: 'auto',
-            marginTop: 24,
-          }}
-        >
-          <table
-            style={{
-              width: '100%',
-              minWidth: 900,
-              borderCollapse: 'collapse',
-            }}
-          >
-            <thead>
-              <tr>
-                <th style={{ textAlign: 'left', padding: 8 }}>
-                  ID
-                </th>
-                <th style={{ textAlign: 'left', padding: 8 }}>
-                  Symbol
-                </th>
-                <th style={{ textAlign: 'left', padding: 8 }}>
-                  Side
-                </th>
-                <th style={{ textAlign: 'left', padding: 8 }}>
-                  Type
-                </th>
-                <th style={{ textAlign: 'left', padding: 8 }}>
-                  Quantity
-                </th>
-                <th style={{ textAlign: 'left', padding: 8 }}>
-                  Price
-                </th>
-                <th style={{ textAlign: 'left', padding: 8 }}>
-                  Status
-                </th>
-                <th style={{ textAlign: 'left', padding: 8 }}>
-                  Exchange ID
-                </th>
-                <th style={{ textAlign: 'left', padding: 8 }}>
-                  Created
-                </th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {orders.map((order) => (
-                <tr key={order.id}>
-                  <td style={{ padding: 8 }}>
-                    {order.id}
-                  </td>
-
-                  <td style={{ padding: 8 }}>
-                    {order.symbol}
-                  </td>
-
-                  <td style={{ padding: 8 }}>
-                    {order.side}
-                  </td>
-
-                  <td style={{ padding: 8 }}>
-                    {order.type}
-                  </td>
-
-                  <td style={{ padding: 8 }}>
-                    {order.quantity}
-                  </td>
-
-                  <td style={{ padding: 8 }}>
-                    {order.price ?? '-'}
-                  </td>
-
-                  <td style={{ padding: 8 }}>
-                    {order.status}
-                  </td>
-
-                  <td style={{ padding: 8 }}>
-                    {order.exchange_order_id ?? '-'}
-                  </td>
-
-                  <td style={{ padding: 8 }}>
-                    {order.created_at}
-                  </td>
+      <div className="card table-card">
+        {loading ? (
+          <div className="empty-state">
+            Loading orders...
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="empty-state">
+            No orders found.
+          </div>
+        ) : (
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Symbol</th>
+                  <th>Side</th>
+                  <th>Type</th>
+                  <th>Quantity</th>
+                  <th>Price</th>
+                  <th>Status</th>
+                  <th>Exchange ID</th>
+                  <th>Created</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </main>
+              </thead>
+
+              <tbody>
+                {orders.map((order) => (
+                  <tr key={order.id}>
+                    <td>{order.id}</td>
+
+                    <td>
+                      <strong>
+                        {order.symbol}
+                      </strong>
+                    </td>
+
+                    <td>
+                      <span
+                        className={`status-badge ${
+                          order.side === 'BUY'
+                            ? 'status-success'
+                            : 'status-danger'
+                        }`}
+                      >
+                        {order.side}
+                      </span>
+                    </td>
+
+                    <td>{order.type}</td>
+
+                    <td>{order.quantity}</td>
+
+                    <td>
+                      {order.price ?? 'MARKET'}
+                    </td>
+
+                    <td>
+                      <StatusBadge
+                        status={order.status}
+                      />
+                    </td>
+
+                    <td>
+                      {order.exchange_order_id ?? '—'}
+                    </td>
+
+                    <td>
+                      {order.created_at}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

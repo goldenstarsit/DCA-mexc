@@ -2,6 +2,20 @@
 
 import { useEffect, useState } from 'react';
 
+function StatusBadge({ enabled }) {
+  return (
+    <span
+      className={`status-badge ${
+        enabled
+          ? 'status-success'
+          : 'status-neutral'
+      }`}
+    >
+      {enabled ? 'ENABLED' : 'DISABLED'}
+    </span>
+  );
+}
+
 export default function DcaManagementPage() {
   const [levels, setLevels] = useState([]);
   const [triggerPercent, setTriggerPercent] = useState('');
@@ -44,6 +58,15 @@ export default function DcaManagementPage() {
       setSaving(true);
       setError('');
 
+      const nextLevel =
+        levels.length > 0
+          ? Math.max(
+              ...levels.map((item) =>
+                Number(item.level)
+              )
+            ) + 1
+          : 1;
+
       const response = await fetch(
         '/api/dca/levels',
         {
@@ -52,6 +75,7 @@ export default function DcaManagementPage() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            level: nextLevel,
             triggerPercent: Number(triggerPercent),
             quantity: Number(quantity),
             enabled,
@@ -84,169 +108,202 @@ export default function DcaManagementPage() {
   }, []);
 
   return (
-    <main
-      style={{
-        maxWidth: 900,
-        margin: '0 auto',
-        padding: 20,
-      }}
-    >
-      <h1>DCA Management</h1>
+    <div className="page-container">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">
+            DCA Management
+          </h1>
 
-      <p style={{ marginTop: 8 }}>
-        Manage DCA levels and their trigger quantities.
-      </p>
+          <p className="page-description">
+            Configure price-drop levels and investment quantities.
+          </p>
+        </div>
+      </div>
 
       {error && (
         <div
-          style={{
-            marginTop: 16,
-            padding: 12,
-            border: '1px solid #c00',
-            borderRadius: 8,
-          }}
+          className="message message-error"
+          style={{ marginBottom: 16 }}
         >
           {error}
         </div>
       )}
 
-      <section style={{ marginTop: 24 }}>
-        <h2>Add DCA Level</h2>
+      <section className="form-card">
+        <div className="section-header">
+          <div>
+            <h2 className="section-title">
+              Add DCA Level
+            </h2>
+
+            <div
+              style={{
+                marginTop: 4,
+                color: 'var(--muted)',
+                fontSize: 12,
+              }}
+            >
+              Next level will be assigned automatically.
+            </div>
+          </div>
+
+          <span className="status-badge status-neutral">
+            DCA {levels.length + 1}
+          </span>
+        </div>
 
         <form
           onSubmit={addLevel}
-          style={{
-            display: 'grid',
-            gap: 12,
-            marginTop: 12,
-          }}
+          className="form-grid"
         >
-          <label>
-            Trigger Drop %
+          <div className="form-field">
+            <label className="form-label">
+              Trigger Drop %
+            </label>
+
             <input
               type="number"
               step="0.01"
               min="0"
               required
+              placeholder="e.g. 2.5"
               value={triggerPercent}
-              onChange={(e) =>
-                setTriggerPercent(e.target.value)
+              onChange={(event) =>
+                setTriggerPercent(
+                  event.target.value
+                )
               }
-              style={{
-                display: 'block',
-                width: '100%',
-                padding: 10,
-                marginTop: 4,
-              }}
             />
-          </label>
+          </div>
 
-          <label>
-            Quantity
+          <div className="form-field">
+            <label className="form-label">
+              Quantity
+            </label>
+
             <input
               type="number"
               step="0.000001"
               min="0"
               required
+              placeholder="e.g. 0.001"
               value={quantity}
-              onChange={(e) =>
-                setQuantity(e.target.value)
+              onChange={(event) =>
+                setQuantity(
+                  event.target.value
+                )
               }
-              style={{
-                display: 'block',
-                width: '100%',
-                padding: 10,
-                marginTop: 4,
-              }}
             />
-          </label>
+          </div>
 
-          <label>
+          <div className="checkbox-field">
             <input
+              id="dca-enabled"
               type="checkbox"
               checked={enabled}
-              onChange={(e) =>
-                setEnabled(e.target.checked)
+              onChange={(event) =>
+                setEnabled(
+                  event.target.checked
+                )
               }
-            />{' '}
-            Enabled
-          </label>
+            />
 
-          <button
-            type="submit"
-            disabled={saving}
-            style={{
-              padding: 12,
-              cursor: saving ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {saving ? 'Saving...' : 'Add DCA Level'}
-          </button>
+            <label
+              htmlFor="dca-enabled"
+              className="form-label"
+            >
+              Enable this level
+            </label>
+          </div>
+
+          <div>
+            <button
+              type="submit"
+              className="button button-primary"
+              disabled={saving}
+            >
+              {saving
+                ? 'Saving...'
+                : 'Add DCA Level'}
+            </button>
+          </div>
         </form>
       </section>
 
-      <section style={{ marginTop: 32 }}>
-        <h2>DCA Levels</h2>
+      <section className="section">
+        <div className="section-header">
+          <div>
+            <h2 className="section-title">
+              Configured Levels
+            </h2>
 
-        {loading ? (
-          <p>Loading...</p>
-        ) : levels.length === 0 ? (
-          <p>No DCA levels configured.</p>
-        ) : (
-          <div
-            style={{
-              overflowX: 'auto',
-              marginTop: 12,
-            }}
-          >
-            <table
+            <div
               style={{
-                width: '100%',
-                borderCollapse: 'collapse',
+                marginTop: 4,
+                color: 'var(--muted)',
+                fontSize: 12,
               }}
             >
-              <thead>
-                <tr>
-                  <th style={{ textAlign: 'left', padding: 8 }}>
-                    Level
-                  </th>
-                  <th style={{ textAlign: 'left', padding: 8 }}>
-                    Trigger %
-                  </th>
-                  <th style={{ textAlign: 'left', padding: 8 }}>
-                    Quantity
-                  </th>
-                  <th style={{ textAlign: 'left', padding: 8 }}>
-                    Status
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {levels.map((level) => (
-                  <tr key={level.id}>
-                    <td style={{ padding: 8 }}>
-                      DCA {level.level}
-                    </td>
-
-                    <td style={{ padding: 8 }}>
-                      {level.trigger_percent}%
-                    </td>
-
-                    <td style={{ padding: 8 }}>
-                      {level.quantity}
-                    </td>
-
-                    <td style={{ padding: 8 }}>
-                      {level.enabled ? 'Enabled' : 'Disabled'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              {levels.length} level
+              {levels.length === 1 ? '' : 's'} configured
+            </div>
           </div>
-        )}
+        </div>
+
+        <div className="card table-card">
+          {loading ? (
+            <div className="empty-state">
+              Loading DCA levels...
+            </div>
+          ) : levels.length === 0 ? (
+            <div className="empty-state">
+              No DCA levels configured yet.
+            </div>
+          ) : (
+            <div className="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Level</th>
+                    <th>Trigger Drop</th>
+                    <th>Quantity</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {levels.map((level) => (
+                    <tr key={level.id}>
+                      <td>
+                        <strong>
+                          DCA {level.level}
+                        </strong>
+                      </td>
+
+                      <td>
+                        {level.trigger_percent}%
+                      </td>
+
+                      <td>
+                        {level.quantity}
+                      </td>
+
+                      <td>
+                        <StatusBadge
+                          enabled={Boolean(
+                            level.enabled
+                          )}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </section>
-    </main>
+    </div>
   );
 }

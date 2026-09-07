@@ -8,9 +8,10 @@ export default function TradesPage() {
 
   async function loadTrades() {
     try {
-      const response = await fetch('/api/trades', {
-        cache: 'no-store',
-      });
+      const response = await fetch(
+        '/api/trades',
+        { cache: 'no-store' }
+      );
 
       const result = await response.json();
 
@@ -20,7 +21,7 @@ export default function TradesPage() {
         );
       }
 
-      setTrades(result.trades);
+      setTrades(result.trades || []);
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -30,65 +31,129 @@ export default function TradesPage() {
   useEffect(() => {
     loadTrades();
 
-    const interval = setInterval(loadTrades, 5000);
+    const interval = setInterval(
+      loadTrades,
+      5000
+    );
 
     return () => clearInterval(interval);
   }, []);
 
+  const totalPnl = trades.reduce(
+    (sum, trade) =>
+      sum + Number(trade.realized_pnl || 0),
+    0
+  );
+
   return (
-    <main
-      style={{
-        padding: 20,
-        maxWidth: 1200,
-        margin: '0 auto',
-      }}
-    >
-      <h1>Trade History</h1>
+    <div className="page-container">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">
+            Trade History
+          </h1>
 
-      {error && <p>API Error: {error}</p>}
+          <p className="page-description">
+            Completed trades and realized performance.
+          </p>
+        </div>
 
-      {!error && trades.length === 0 && (
-        <p>No completed trades yet.</p>
-      )}
+        <span
+          className={`status-badge ${
+            totalPnl >= 0
+              ? 'status-success'
+              : 'status-danger'
+          }`}
+        >
+          P&L: {totalPnl}
+        </span>
+      </div>
 
-      {trades.length > 0 && (
-        <div style={{ overflowX: 'auto', marginTop: 20 }}>
-          <table
-            style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-            }}
-          >
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Symbol</th>
-                <th>Quantity</th>
-                <th>Entry Price</th>
-                <th>Exit Price</th>
-                <th>P&L</th>
-                <th>P&L %</th>
-                <th>Closed</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {trades.map((trade) => (
-                <tr key={trade.id}>
-                  <td>{trade.id}</td>
-                  <td>{trade.symbol}</td>
-                  <td>{trade.quantity}</td>
-                  <td>{trade.entry_price ?? '-'}</td>
-                  <td>{trade.exit_price ?? trade.price}</td>
-                  <td>{trade.realized_pnl}</td>
-                  <td>{trade.realized_pnl_percent}%</td>
-                  <td>{trade.closed_at}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {error && (
+        <div
+          className="message message-error"
+          style={{ marginBottom: 16 }}
+        >
+          API Error: {error}
         </div>
       )}
-    </main>
+
+      <div className="card table-card">
+        {!error && trades.length === 0 ? (
+          <div className="empty-state">
+            No completed trades yet.
+          </div>
+        ) : (
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Symbol</th>
+                  <th>Quantity</th>
+                  <th>Entry Price</th>
+                  <th>Exit Price</th>
+                  <th>P&L</th>
+                  <th>P&L %</th>
+                  <th>Closed</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {trades.map((trade) => {
+                  const pnl =
+                    Number(
+                      trade.realized_pnl || 0
+                    );
+
+                  return (
+                    <tr key={trade.id}>
+                      <td>{trade.id}</td>
+
+                      <td>
+                        <strong>
+                          {trade.symbol}
+                        </strong>
+                      </td>
+
+                      <td>{trade.quantity}</td>
+
+                      <td>
+                        {trade.entry_price ?? '—'}
+                      </td>
+
+                      <td>
+                        {trade.exit_price ??
+                          trade.price}
+                      </td>
+
+                      <td>
+                        <span
+                          className={`status-badge ${
+                            pnl >= 0
+                              ? 'status-success'
+                              : 'status-danger'
+                          }`}
+                        >
+                          {trade.realized_pnl}
+                        </span>
+                      </td>
+
+                      <td>
+                        {trade.realized_pnl_percent}%
+                      </td>
+
+                      <td>
+                        {trade.closed_at}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
