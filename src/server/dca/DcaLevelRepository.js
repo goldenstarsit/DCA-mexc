@@ -103,6 +103,46 @@ export class DcaLevelRepository extends BaseRepository {
     `).run(level);
   }
 
+  reorder(levels) {
+    const transaction = this.db.transaction((orderedLevels) => {
+      const now = new Date().toISOString();
+
+      for (let index = 0; index < orderedLevels.length; index++) {
+        const level = orderedLevels[index];
+        const temporaryLevel = -(index + 1);
+
+        this.prepare(`
+          UPDATE dca_levels
+          SET level = ?, updated_at = ?
+          WHERE level = ?
+        `).run(
+          temporaryLevel,
+          now,
+          level
+        );
+      }
+
+      for (let index = 0; index < orderedLevels.length; index++) {
+        const oldLevel = -(index + 1);
+        const newLevel = index + 1;
+
+        this.prepare(`
+          UPDATE dca_levels
+          SET level = ?, updated_at = ?
+          WHERE level = ?
+        `).run(
+          newLevel,
+          now,
+          oldLevel
+        );
+      }
+
+      return this.getAll();
+    });
+
+    return transaction(levels);
+  }
+
   deleteAll() {
     return this.prepare(`
       DELETE FROM dca_levels

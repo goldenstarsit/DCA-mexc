@@ -79,3 +79,57 @@ export async function PATCH(request) {
     );
   }
 }
+
+export async function DELETE(request) {
+  try {
+    const body = await request.json();
+
+    if (!Number.isInteger(body.level) || body.level <= 0) {
+      return Response.json(
+        {
+          success: false,
+          error: 'level must be a positive integer',
+        },
+        { status: 400 }
+      );
+    }
+
+    service.delete(body.level);
+
+    return Response.json({
+      success: true,
+      deletedLevel: body.level,
+    });
+  } catch (error) {
+    return Response.json(
+      {
+        success: false,
+        error: error.message,
+      },
+      { status: 400 }
+    );
+  }
+}
+
+export async function PUT(request) {
+  try {
+    const body = await request.json();
+
+    const levels = body?.levels;
+
+    const reordered = service.reorder(levels);
+
+    return Response.json({
+      success: true,
+      levels: reordered,
+    });
+  } catch (error) {
+    return Response.json(
+      {
+        success: false,
+        error: error.message,
+      },
+      { status: 400 }
+    );
+  }
+}

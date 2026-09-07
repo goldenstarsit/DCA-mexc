@@ -64,8 +64,64 @@ export class DcaLevelService {
   delete(level) {
     const normalizedLevel = normalizeLevel(level);
 
+    const existing = this.repository.getByLevel(
+      normalizedLevel
+    );
+
+    if (!existing) {
+      throw new Error(
+        `DCA level not found: ${normalizedLevel}`
+      );
+    }
+
     return this.repository.delete(
       normalizedLevel
+    );
+  }
+
+  reorder(levels) {
+    if (!Array.isArray(levels) || levels.length === 0) {
+      throw new Error(
+        'levels must be a non-empty array'
+      );
+    }
+
+    const normalizedLevels = levels.map(normalizeLevel);
+
+    if (
+      new Set(normalizedLevels).size !==
+      normalizedLevels.length
+    ) {
+      throw new Error(
+        'levels must not contain duplicates'
+      );
+    }
+
+    const existingLevels = this.repository
+      .getAll()
+      .map(item => item.level);
+
+    if (
+      normalizedLevels.length !==
+      existingLevels.length
+    ) {
+      throw new Error(
+        'Reorder must include all existing DCA levels'
+      );
+    }
+
+    const existingSet = new Set(existingLevels);
+
+    for (const level of normalizedLevels) {
+      if (!existingSet.has(level)) {
+        throw new Error(
+          `DCA level not found: ${level}`
+        );
+      }
+    }
+
+    return this.repository.reorder(
+      normalizedLevels
     );
   }
 }
