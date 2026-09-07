@@ -199,4 +199,13 @@ export class MexcClient {
       { signed: true }
     );
   }
+
+  order(params = {}) {
+    return this.request(
+      'POST',
+      '/api/v3/order',
+      params,
+      { signed: true }
+    );
+  }
 }
