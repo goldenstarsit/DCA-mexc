@@ -12,7 +12,7 @@ export class Database {
   }
 
   transaction(fn) {
-    return this.adapter.transaction(fn);
+    return this.adapter.transaction(fn)();
   }
 
   close() {
