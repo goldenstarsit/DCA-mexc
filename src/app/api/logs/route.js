@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { logServerError } from '@/server/core/SafeLogger.js';
 
 import { getDatabase } from '@/server/database';
 import { BotEventLogRepository } from '@/server/log/BotEventLogRepository.js';
@@ -21,12 +22,12 @@ export async function GET() {
       logs: service.getAll(),
     });
   } catch (error) {
-    console.error('BOT_LOGS_GET_ERROR', error);
+    logServerError('BOT_LOGS_GET_ERROR', error);
 
     return NextResponse.json(
       {
         ok: false,
-        error: error?.message ?? String(error),
+        error: 'Internal server error',
       },
       { status: 500 }
     );

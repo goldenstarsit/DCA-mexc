@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { logServerError } from '@/server/core/SafeLogger.js';
 
 import { getDatabase } from '@/server/database';
 import { BotConfigRepository } from '@/server/botConfig/BotConfigRepository.js';
@@ -22,12 +23,12 @@ export async function GET() {
       config: service.get(),
     });
   } catch (error) {
-    console.error('BOT_CONFIG_GET_ERROR', error);
+    logServerError('BOT_CONFIG_GET_ERROR', error);
 
     return NextResponse.json(
       {
         ok: false,
-        error: error?.message ?? String(error),
+        error: 'Internal server error',
       },
       { status: 500 }
     );
@@ -69,12 +70,12 @@ export async function PATCH(request) {
       config,
     });
   } catch (error) {
-    console.error('BOT_CONFIG_PATCH_ERROR', error);
+    logServerError('BOT_CONFIG_PATCH_ERROR', error);
 
     return NextResponse.json(
       {
         ok: false,
-        error: error?.message ?? String(error),
+        error: 'Internal server error',
       },
       { status: 400 }
     );

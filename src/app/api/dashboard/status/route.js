@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { logServerError } from '@/server/core/SafeLogger.js';
 import { getDatabase } from '@/server/database';
 
 import { BotRuntimeRepository } from '@/server/bot/BotRuntimeRepository.js';

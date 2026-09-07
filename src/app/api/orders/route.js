@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { logServerError } from '@/server/core/SafeLogger.js';
 
 import { getDatabase } from '@/server/database';
 import { OrderRequestRepository } from '@/server/order/OrderRequestRepository.js';
@@ -17,12 +18,12 @@ export async function GET() {
       orders,
     });
   } catch (error) {
-    console.error('ORDERS_GET_ERROR', error);
+    logServerError('ORDERS_GET_ERROR', error);
 
     return NextResponse.json(
       {
         ok: false,
-        error: error?.message ?? String(error),
+        error: 'Internal server error',
       },
       { status: 500 }
     );

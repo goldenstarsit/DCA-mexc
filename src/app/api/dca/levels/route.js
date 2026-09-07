@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { logServerError } from '@/server/core/SafeLogger.js';
 
 import { getDatabase } from '@/server/database';
 import { DcaLevelRepository } from '@/server/dca/DcaLevelRepository.js';
@@ -22,12 +23,12 @@ export async function GET() {
       levels: service.getAll(),
     });
   } catch (error) {
-    console.error('DCA_LEVELS_GET_ERROR', error);
+    logServerError('DCA_LEVELS_GET_ERROR', error);
 
     return NextResponse.json(
       {
         ok: false,
-        error: error?.message ?? String(error),
+        error: 'Internal server error',
       },
       { status: 500 }
     );
@@ -57,12 +58,12 @@ export async function POST(request) {
       { status: 201 }
     );
   } catch (error) {
-    console.error('DCA_LEVELS_POST_ERROR', error);
+    logServerError('DCA_LEVELS_POST_ERROR', error);
 
     return NextResponse.json(
       {
         ok: false,
-        error: error?.message ?? String(error),
+        error: 'Internal server error',
       },
       { status: 400 }
     );

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { logServerError } from '@/server/core/SafeLogger.js';
 
 import { getDatabase } from '@/server/database';
 import { TradeHistoryRepository } from '@/server/trade/TradeHistoryRepository.js';
@@ -15,12 +16,12 @@ export async function GET() {
       trades: repository.getAll(),
     });
   } catch (error) {
-    console.error('TRADE_HISTORY_GET_ERROR', error);
+    logServerError('TRADE_HISTORY_GET_ERROR', error);
 
     return NextResponse.json(
       {
         ok: false,
-        error: error?.message ?? String(error),
+        error: 'Internal server error',
       },
       { status: 500 }
     );
