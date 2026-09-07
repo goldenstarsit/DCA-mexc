@@ -1,4 +1,5 @@
-const DEFAULT_URL = 'ws://wbs-api.mexc.com/ws';
+import { decodeMexcWebSocketMessage } from './MexcWebSocketDecoder.js';
+const DEFAULT_URL = 'wss://wbs-api.mexc.com/ws';
 const DEFAULT_RECONNECT_DELAY_MS = 3000;
 const DEFAULT_PING_INTERVAL_MS = 20000;
 
@@ -67,16 +68,18 @@ export class MexcWebSocketClient {
       }
     };
 
-    socket.onmessage = event => {
+    socket.onmessage = async event => {
       let data;
 
       try {
-        data =
-          typeof event.data === 'string'
-            ? JSON.parse(event.data)
-            : event.data;
-      } catch {
-        data = event.data;
+        if (typeof event.data === 'string') {
+          data = JSON.parse(event.data);
+        } else {
+          data = await decodeMexcWebSocketMessage(event.data);
+        }
+      } catch (error) {
+        this.handlers.error(error);
+        return;
       }
 
       if (data?.msg === 'PONG') {

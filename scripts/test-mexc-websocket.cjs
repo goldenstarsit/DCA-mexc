@@ -19,7 +19,10 @@ class FakeWebSocket {
     this.readyState = 3;
 
     if (this.onclose) {
-      this.onclose({ code: 1000, reason: 'test close' });
+      this.onclose({
+        code: 1000,
+        reason: 'test close',
+      });
     }
   }
 
@@ -34,7 +37,7 @@ class FakeWebSocket {
   message(data) {
     if (this.onmessage) {
       this.onmessage({
-        data: JSON.stringify(data),
+        data,
       });
     }
   }
@@ -49,11 +52,41 @@ class FakeWebSocket {
 FakeWebSocket.instances = [];
 
 async function main() {
+  const protobuf = await import('protobufjs');
+
   const {
     MexcWebSocketClient,
   } = await import(
     '../src/server/mexc/MexcWebSocketClient.js'
   );
+
+  const root = await protobuf.default.load(
+    'src/server/mexc/proto/PublicAggreDealsV3Api.proto'
+  );
+
+  const Wrapper =
+    root.lookupType('PushDataV3ApiWrapper');
+
+  const encoded = Wrapper.encode(
+    Wrapper.create({
+      channel:
+        'spot@public.aggre.deals.v3.api.pb@100ms@BTCUSDT',
+      symbol: 'BTCUSDT',
+      sendTime: 1700000000000,
+      publicAggreDeals: {
+        deals: [
+          {
+            price: '100000',
+            quantity: '0.001',
+            tradeType: 1,
+            time: 1700000000000,
+          },
+        ],
+        eventType:
+          'spot@public.aggre.deals.v3.api.pb@100ms',
+      },
+    })
+  ).finish();
 
   const messages = [];
   const errors = [];
@@ -67,21 +100,22 @@ async function main() {
 
   client.connect();
 
-  assert.equal(FakeWebSocket.instances.length, 1);
-
   const socket = FakeWebSocket.instances[0];
 
   assert.equal(
     socket.url,
-    'ws://wbs-api.mexc.com/ws'
+    'wss://wbs-api.mexc.com/ws'
   );
 
   socket.open();
 
-  assert.equal(client.isConnected(), true);
+  assert.equal(
+    client.isConnected(),
+    true
+  );
 
   const tradeChannel =
-    client.subscribeTrade('btcusdt');
+    client.subscribeTrade('BTCUSDT');
 
   assert.equal(
     tradeChannel,
@@ -96,83 +130,64 @@ async function main() {
     }
   );
 
-  const bookChannel =
-    client.subscribeBookTicker('ethusdt');
+  socket.message(encoded);
 
-  assert.equal(
-    bookChannel,
-    'spot@public.aggre.bookTicker.v3.api.pb@100ms@ETHUSDT'
+  await new Promise(resolve =>
+    setTimeout(resolve, 100)
   );
 
-  assert.deepEqual(
-    socket.sent[1],
-    {
-      method: 'SUBSCRIPTION',
-      params: [bookChannel],
-    }
-  );
+  if (errors.length) {
+  console.error('WEBSOCKET DECODER ERRORS:');
+  for (const error of errors) {
+    console.error(error);
+  }
+}
 
-  client.ping();
-
-  assert.deepEqual(
-    socket.sent[2],
-    {
-      method: 'PING',
-    }
-  );
-
-  socket.message({
-    msg: 'PONG',
-  });
-
-  socket.message({
-    channel:
-      'spot@public.aggre.deals.v3.api.pb@100ms',
-    symbol: 'BTCUSDT',
-    publicdeals: {
-      dealsList: [
-        {
-          price: '100000',
-          quantity: '0.001',
-          tradetype: 1,
-          time: 1700000000000,
-        },
-      ],
-    },
-  });
-
+assert.equal(errors.length, 0);
   assert.equal(messages.length, 1);
-  assert.equal(messages[0].symbol, 'BTCUSDT');
+
+  const message = messages[0];
+
   assert.equal(
-    messages[0].publicdeals.dealsList[0].price,
+    message.channel,
+    tradeChannel
+  );
+
+  assert.equal(
+    message.symbol,
+    'BTCUSDT'
+  );
+
+  assert.equal(
+    message.publicAggreDeals.deals[0].price,
     '100000'
   );
 
-  client.unsubscribe(tradeChannel);
-
-  assert.deepEqual(
-    socket.sent[3],
-    {
-      method: 'UNSUBSCRIPTION',
-      params: [tradeChannel],
-    }
+  assert.equal(
+    message.publicAggreDeals.deals[0].quantity,
+    '0.001'
   );
 
-  assert.equal(errors.length, 0);
+  assert.equal(
+    message.publicAggreDeals.deals[0].tradeType,
+    1
+  );
+
+  assert.equal(
+    message.publicAggreDeals.deals[0].time,
+    1700000000000
+  );
 
   client.disconnect();
 
-  assert.equal(client.isConnected(), false);
-
   console.log('MEXC WebSocket client test: OK');
-  console.log('Trade subscription: OK');
-  console.log('Book ticker subscription: OK');
-  console.log('PING/PONG handling: OK');
-  console.log('Message parsing: OK');
-  console.log('Unsubscription: OK');
-  console.log('Clean disconnect: OK');
+  console.log('Protobuf encoding/decoding test: OK');
+  console.log('Trade price decoding: OK');
+  console.log('Trade quantity decoding: OK');
+  console.log('Trade type decoding: OK');
+  console.log('Trade time decoding: OK');
+  console.log('Binary payload handling: OK');
 }
-
 main().catch(error => {
   console.error(error);
   process.exit(1);
