@@ -1,6 +1,7 @@
 export class OrderManager {
-  constructor(mexcClient) {
+  constructor(mexcClient, duplicateProtection) {
     this.mexcClient = mexcClient;
+    this.duplicateProtection = duplicateProtection;
   }
 
   async place({
@@ -10,17 +11,22 @@ export class OrderManager {
     quantity,
     price,
   }) {
-    const normalizedSymbol = normalizeSymbol(symbol);
-    const normalizedSide = normalizeEnum(
-      side,
-      ['BUY', 'SELL'],
-      'side'
-    );
-    const normalizedType = normalizeEnum(
-      type,
-      ['MARKET', 'LIMIT'],
-      'type'
-    );
+    const normalizedSymbol =
+      normalizeSymbol(symbol);
+
+    const normalizedSide =
+      normalizeEnum(
+        side,
+        ['BUY', 'SELL'],
+        'side'
+      );
+
+    const normalizedType =
+      normalizeEnum(
+        type,
+        ['MARKET', 'LIMIT'],
+        'type'
+      );
 
     validatePositive(quantity, 'quantity');
 
@@ -28,22 +34,7 @@ export class OrderManager {
       validatePositive(price, 'price');
     }
 
-    const params = {
-      symbol: normalizedSymbol,
-      side: normalizedSide,
-      type: normalizedType,
-      quantity,
-    };
-
-    if (normalizedType === 'LIMIT') {
-      params.price = price;
-      params.timeInForce = 'GTC';
-    }
-
-    const response =
-      await this.mexcClient.order(params);
-
-    return {
+    const order = {
       symbol: normalizedSymbol,
       side: normalizedSide,
       type: normalizedType,
@@ -51,8 +42,50 @@ export class OrderManager {
       ...(normalizedType === 'LIMIT'
         ? { price }
         : {}),
-      response,
     };
+
+    const reservation =
+      this.duplicateProtection.reserve(order);
+
+    if (reservation.duplicate) {
+      throw new Error(
+        `Duplicate order request: ${reservation.requestKey}`
+      );
+    }
+
+    const params = {
+      ...order,
+    };
+
+    if (normalizedType === 'LIMIT') {
+      params.timeInForce = 'GTC';
+    }
+
+    try {
+      const response =
+        await this.mexcClient.order(params);
+
+      const exchangeOrderId =
+        response?.orderId ??
+        response?.orderID ??
+        null;
+
+      this.duplicateProtection.markCompleted(
+        reservation.record.id,
+        exchangeOrderId
+      );
+
+      return {
+        ...order,
+        response,
+      };
+    } catch (error) {
+      this.duplicateProtection.markFailed(
+        reservation.record.id
+      );
+
+      throw error;
+    }
   }
 }
 
