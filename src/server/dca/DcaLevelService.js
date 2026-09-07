@@ -29,10 +29,31 @@ export class DcaLevelService {
 
   update(level, data) {
     const normalizedLevel = normalizeLevel(level);
-    const validated = validateLevel({
-      ...data,
+
+    const existing = this.repository.getByLevel(
+      normalizedLevel
+    );
+
+    if (!existing) {
+      throw new Error(
+        `DCA level not found: ${normalizedLevel}`
+      );
+    }
+
+    const merged = {
       level: normalizedLevel,
-    });
+      triggerPercent:
+        data.triggerPercent ??
+        Number(existing.trigger_percent),
+      quantity:
+        data.quantity ??
+        Number(existing.quantity),
+      enabled:
+        data.enabled ??
+        existing.enabled === 1,
+    };
+
+    const validated = validateLevel(merged);
 
     return this.repository.update(
       normalizedLevel,
