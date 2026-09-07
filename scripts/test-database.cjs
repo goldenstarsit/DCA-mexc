@@ -1,37 +1,57 @@
 require('dotenv').config({
-  path: '.env.local',
+  path: '.env.local'
 });
 
 const Database = require('better-sqlite3');
 
 const db = new Database(
-  process.env.DATABASE_FILE || './data/dca-mexc.db'
+  process.env.DATABASE_FILE ||
+    './data/dca-mexc.db'
 );
 
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS system_test (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    message TEXT NOT NULL,
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-  )
-`);
+const schema = db
+  .prepare(`
+    SELECT name
+    FROM sqlite_master
+    WHERE type = 'table'
+    ORDER BY name
+  `)
+  .all();
 
-const insert = db.prepare(
-  'INSERT INTO system_test (message) VALUES (?)'
-);
+const migrations = db
+  .prepare(`
+    SELECT migration_id, applied_at
+    FROM schema_migrations
+    ORDER BY id
+  `)
+  .all();
 
-insert.run('dca-mexc database initialized');
-
-const row = db
-  .prepare(
-    'SELECT * FROM system_test ORDER BY id DESC LIMIT 1'
-  )
+const meta = db
+  .prepare(`
+    SELECT name
+    FROM sqlite_master
+    WHERE type = 'table'
+      AND name = 'app_meta'
+  `)
   .get();
 
-console.log('Database OK');
-console.log(row);
+if (!meta) {
+  throw new Error('app_meta table missing');
+}
+
+if (migrations.length !== 2) {
+  throw new Error(
+    `Expected 2 migrations, found ${migrations.length}`
+  );
+}
+
+console.log('Database Foundation OK');
+console.log('Tables:');
+console.table(schema);
+console.log('Migrations:');
+console.table(migrations);
 
 db.close();
