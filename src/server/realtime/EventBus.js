@@ -1,6 +1,12 @@
+import { logServerError } from '../core/SafeLogger.js';
+
 const subscribers = new Set();
 
 export function subscribe(listener) {
+  if (typeof listener !== 'function') {
+    throw new TypeError('Realtime subscriber must be a function');
+  }
+
   subscribers.add(listener);
 
   return () => {
@@ -9,6 +15,10 @@ export function subscribe(listener) {
 }
 
 export function publish(event, data = {}) {
+  if (subscribers.size === 0) {
+    return;
+  }
+
   const message = {
     event,
     data,
@@ -19,7 +29,12 @@ export function publish(event, data = {}) {
     try {
       listener(message);
     } catch (error) {
-      console.error('REALTIME_LISTENER_ERROR', error);
+      logServerError('REALTIME_LISTENER_ERROR', error);
+      subscribers.delete(listener);
     }
   }
+}
+
+export function getSubscriberCount() {
+  return subscribers.size;
 }
