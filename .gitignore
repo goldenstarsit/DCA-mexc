@@ -9,3 +9,4 @@ data/*.db
 data/*.db-shm
 data/*.db-wal
 .DS_Store
+\nscripts/backups/\nscripts/backups/*.db\n
