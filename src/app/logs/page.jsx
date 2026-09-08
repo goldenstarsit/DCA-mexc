@@ -55,7 +55,7 @@ export default function LogsPage() {
 
       interval = setInterval(
         loadLogs,
-        5000
+        15000
       );
     };
 

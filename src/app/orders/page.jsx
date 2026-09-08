@@ -60,7 +60,7 @@ export default function OrdersPage() {
 
       interval = setInterval(
         loadOrders,
-        5000
+        10000
       );
     };
 

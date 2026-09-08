@@ -40,7 +40,7 @@ export default function TradesPage() {
 
       interval = setInterval(
         loadTrades,
-        5000
+        15000
       );
     };
 
