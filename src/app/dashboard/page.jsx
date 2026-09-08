@@ -64,14 +64,53 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    loadDashboard();
+    let interval = null;
 
-    const interval = setInterval(
-      loadDashboard,
-      5000
+    const startPolling = () => {
+      if (document.hidden || interval) {
+        return;
+      }
+
+      loadDashboard();
+
+      interval = setInterval(
+        loadDashboard,
+        5000
+      );
+    };
+
+    const stopPolling = () => {
+      if (!interval) {
+        return;
+      }
+
+      clearInterval(interval);
+      interval = null;
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        startPolling();
+      }
+    };
+
+    startPolling();
+
+    document.addEventListener(
+      'visibilitychange',
+      handleVisibilityChange
     );
 
-    return () => clearInterval(interval);
+    return () => {
+      stopPolling();
+
+      document.removeEventListener(
+        'visibilitychange',
+        handleVisibilityChange
+      );
+    };
   }, []);
 
   if (error) {

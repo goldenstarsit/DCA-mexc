@@ -49,14 +49,53 @@ export default function OrdersPage() {
   }
 
   useEffect(() => {
-    loadOrders();
+    let interval = null;
 
-    const interval = setInterval(
-      loadOrders,
-      5000
+    const startPolling = () => {
+      if (document.hidden || interval) {
+        return;
+      }
+
+      loadOrders();
+
+      interval = setInterval(
+        loadOrders,
+        5000
+      );
+    };
+
+    const stopPolling = () => {
+      if (!interval) {
+        return;
+      }
+
+      clearInterval(interval);
+      interval = null;
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        startPolling();
+      }
+    };
+
+    startPolling();
+
+    document.addEventListener(
+      'visibilitychange',
+      handleVisibilityChange
     );
 
-    return () => clearInterval(interval);
+    return () => {
+      stopPolling();
+
+      document.removeEventListener(
+        'visibilitychange',
+        handleVisibilityChange
+      );
+    };
   }, []);
 
   return (

@@ -29,14 +29,53 @@ export default function TradesPage() {
   }
 
   useEffect(() => {
-    loadTrades();
+    let interval = null;
 
-    const interval = setInterval(
-      loadTrades,
-      5000
+    const startPolling = () => {
+      if (document.hidden || interval) {
+        return;
+      }
+
+      loadTrades();
+
+      interval = setInterval(
+        loadTrades,
+        5000
+      );
+    };
+
+    const stopPolling = () => {
+      if (!interval) {
+        return;
+      }
+
+      clearInterval(interval);
+      interval = null;
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        startPolling();
+      }
+    };
+
+    startPolling();
+
+    document.addEventListener(
+      'visibilitychange',
+      handleVisibilityChange
     );
 
-    return () => clearInterval(interval);
+    return () => {
+      stopPolling();
+
+      document.removeEventListener(
+        'visibilitychange',
+        handleVisibilityChange
+      );
+    };
   }, []);
 
   const totalPnl = trades.reduce(
