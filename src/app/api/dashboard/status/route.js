@@ -13,8 +13,10 @@ import { BotConfigService } from '@/server/botConfig/BotConfigService.js';
 
 export const runtime = 'nodejs';
 
-export async function GET() {
-  try {
+let dashboardServices = null;
+
+function getDashboardServices() {
+  if (!dashboardServices) {
     const db = getDatabase();
 
     const runtimeRepository =
@@ -38,6 +40,26 @@ export async function GET() {
       new BotConfigService(
         botConfigRepository
       );
+
+    dashboardServices = {
+      runtimeRepository,
+      positionRepository,
+      tradingPairService,
+      botConfigService,
+    };
+  }
+
+  return dashboardServices;
+}
+
+export async function GET() {
+  try {
+    const {
+      runtimeRepository,
+      positionRepository,
+      tradingPairService,
+      botConfigService,
+    } = getDashboardServices();
 
     const runtime =
       runtimeRepository.get();
@@ -109,17 +131,12 @@ export async function GET() {
         new Date().toISOString(),
     });
   } catch (error) {
-    console.error(
-      'DASHBOARD_API_ERROR',
-      error
-    );
+    logServerError('DASHBOARD_API_ERROR', error);
 
     return NextResponse.json(
       {
         ok: false,
-        error:
-          error?.message ??
-          String(error),
+        error: 'Internal server error',
       },
       { status: 500 }
     );
