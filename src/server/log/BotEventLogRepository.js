@@ -13,6 +13,7 @@ export class BotEventLogRepository extends BaseRepository {
         created_at
       FROM bot_event_logs
       ORDER BY id DESC
+      LIMIT 100
     `).all();
   }
 

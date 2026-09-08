@@ -33,6 +33,7 @@ export class OrderRequestRepository extends BaseRepository {
         updated_at
       FROM order_requests
       ORDER BY id DESC
+      LIMIT 100
     `).all();
   }
 
