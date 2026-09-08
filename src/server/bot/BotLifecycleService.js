@@ -1,3 +1,5 @@
+import { publish } from '../realtime/EventBus.js';
+
 const STATES = Object.freeze({
   STOPPED: 'STOPPED',
   RUNNING: 'RUNNING',
@@ -61,12 +63,25 @@ export class BotLifecycleService {
     const record =
       this.repository.setState(nextState);
 
-    return {
+    const result = {
       previousState: currentState,
       currentState: nextState,
       reason,
       updatedAt: record.updated_at,
     };
+
+    try {
+      publish('BOT_STATE_CHANGED', {
+        previousState: currentState,
+        currentState: nextState,
+        reason,
+        updatedAt: record.updated_at,
+      });
+    } catch {
+      // Realtime delivery must never break bot lifecycle changes.
+    }
+
+    return result;
   }
 }
 

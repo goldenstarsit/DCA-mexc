@@ -1220,3 +1220,65 @@ describe('Full database migration system', () => {
     db.close();
   });
 });
+
+describe('Bot Lifecycle Realtime Events', () => {
+  it('publishes BOT_STATE_CHANGED without changing lifecycle result', async () => {
+    const { BotLifecycleService } = await import(
+      '../src/server/bot/BotLifecycleService.js'
+    );
+    const { subscribe } = await import(
+      '../src/server/realtime/EventBus.js'
+    );
+
+    const states = ['STOPPED', 'RUNNING'];
+    let currentState = states[0];
+    let receivedEvent = null;
+
+    const repository = {
+      get() {
+        return {
+          state: currentState,
+          updated_at: '2026-01-01T00:00:00.000Z',
+        };
+      },
+
+      setState(state) {
+        currentState = state;
+
+        return {
+          state,
+          updated_at: '2026-01-01T00:00:01.000Z',
+        };
+      },
+    };
+
+    const unsubscribe = subscribe((event) => {
+      receivedEvent = event;
+    });
+
+    try {
+      const service = new BotLifecycleService(repository);
+
+      const result = service.start();
+
+      expect(result).toEqual({
+        previousState: 'STOPPED',
+        currentState: 'RUNNING',
+        reason: 'BOT_STARTED',
+        updatedAt: '2026-01-01T00:00:01.000Z',
+      });
+
+      expect(receivedEvent).toMatchObject({
+        event: 'BOT_STATE_CHANGED',
+        data: {
+          previousState: 'STOPPED',
+          currentState: 'RUNNING',
+          reason: 'BOT_STARTED',
+          updatedAt: '2026-01-01T00:00:01.000Z',
+        },
+      });
+    } finally {
+      unsubscribe();
+    }
+  });
+});
